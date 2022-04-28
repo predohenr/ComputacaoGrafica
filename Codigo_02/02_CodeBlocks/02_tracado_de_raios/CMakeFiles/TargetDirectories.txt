@@ -1,0 +1,3 @@
+/home/aluno/Downloads/CC0029-master/Codigo_02/02_CodeBlocks/02_tracado_de_raios/CMakeFiles/rebuild_cache.dir
+/home/aluno/Downloads/CC0029-master/Codigo_02/02_CodeBlocks/02_tracado_de_raios/CMakeFiles/edit_cache.dir
+/home/aluno/Downloads/CC0029-master/Codigo_02/02_CodeBlocks/02_tracado_de_raios/CMakeFiles/raytracer.dir
