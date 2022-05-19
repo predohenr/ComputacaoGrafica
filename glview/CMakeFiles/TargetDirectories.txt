@@ -1,0 +1,3 @@
+/home/ufca/Downloads/glview/CMakeFiles/glview.dir
+/home/ufca/Downloads/glview/CMakeFiles/edit_cache.dir
+/home/ufca/Downloads/glview/CMakeFiles/rebuild_cache.dir
