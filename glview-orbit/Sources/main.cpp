@@ -7,6 +7,12 @@
 #include <cmath>
 #include <cassert>
 
+#ifdef _WIN32
+  #include <windows.h>
+#else
+  #include <unistd.h>
+#endif
+
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -27,11 +33,17 @@ enum {
 };
 
 std::string program_name;
-GLsizei width, height, status; // window size
+GLsizei width, height, status;
 int direction;
+int pulo=0;
+float theta2 = 0;
 float theta = 0;
 float head = 0;
 float rotate = 0;
+glm::mat4 jumpOrigin;
+int parado = 1;
+float velocity = 0.2;
+
 glm::vec3 head_RotationAxis;
 glm::mat4 matrixLegL;
 glm::mat4 matrixLegR;
@@ -40,33 +52,48 @@ glm::mat4 matrixArmR;
 glm::mat4 matrixHead;
 glm::mat4 matrixBody;
 
+void sleepcp(int milliseconds){
+  #ifdef _WIN32
+    Sleep(milliseconds);
+  #else
+    usleep(milliseconds*1000);
+  #endif
+}
+
+void idle();
+
 class MyScene : public Scene
 {
 public:
     MyScene()
         : _theta(0.0) { }
-        
-public:
     void rotate_body(){
         head_RotationAxis = leg_top_center(0);
-
         matrixLegL = glm::translate(glm::mat4(1.0f), head_RotationAxis);
-
         matrixLegL = glm::rotate(matrixLegL, 0.1f*direction, glm::vec3(0.0,1.0,0.0));
-
-        matrixLegL = glm::translate(matrixLegL, -head_RotationAxis);
-        
+        matrixLegL = glm::translate(matrixLegL, -head_RotationAxis);     
         glm::mat4 matrix = model(0).matrix();
         glm::mat4 update = matrix*matrixLegL;
         model(0).set_matrix(update);
     }
-public:
     void move_head(){
               glm::vec3 head_RotationAxis = leg_top_center(0);
               glm::mat4 matrixHead = glm::translate(glm::mat4(1.0f), head_RotationAxis);
               matrixHead = glm::rotate(matrixHead, head, glm::vec3(0.0,1.0,0.0));
               matrixHead = glm::translate(matrixHead, -head_RotationAxis);
               model(0).mesh(0).set_matrix(matrixHead);
+    }
+public:
+    void jump(){
+      glm::mat4 pula = model(0).matrix();
+      pula = glm::translate(pula, glm::vec3(0.0, std::sin(theta2),0.0));
+      model(0).set_matrix(pula);
+      if (theta2 >= 2*M_PI){
+        theta2 = 0;
+        pulo = 0;
+        model(0).set_matrix(jumpOrigin);  
+      }
+      theta2 += 2*M_PI/25;
     }
 public:
     void walk()
@@ -105,7 +132,7 @@ public:
         model(0).mesh(4).set_matrix(matrixArmR);
 
         glm::mat4 walking = model(0).matrix();
-        walking = glm::translate(walking, glm::vec3(0.2,0.0,0.0));
+        walking = glm::translate(walking, glm::vec3(velocity,0.0,0.0));
         model(0).set_matrix(walking);
     }
     
@@ -218,6 +245,8 @@ main(int argc, char *argv[])
 
   // Initialize the scene to be rendered
   initialize();
+
+  double lasttime = glfwGetTime();
   
   // Loop until the user closes the window
   while (!glfwWindowShouldClose(window))
@@ -227,6 +256,12 @@ main(int argc, char *argv[])
 
     // Poll for and process events
     glfwPollEvents();
+
+    idle();
+
+    while(glfwGetTime() < lasttime + 1.0/60.0){
+    }
+    lasttime += 1.0/60.0;
   }
   
   // Terminate GLFW
@@ -258,7 +293,7 @@ initialize()
     scene.set_projection(45.0, (float)width/(float)height, 1.0, 100.0);
 
     // set view
-    glm::vec3 eye(0.0,0.0,10.0);
+    glm::vec3 eye(15.0,15.0,15.0);
     glm::vec3 at(0.0,0.0,-1.0);
     glm::vec3 up(0.0,1.0,0.0);
     scene.set_view(eye,at,up);
@@ -310,6 +345,28 @@ void
 keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
   switch (key) {
+    case GLFW_KEY_LEFT_SHIFT:
+      if (action == GLFW_PRESS && velocity<0.8) {
+        velocity += 0.2;
+      }
+      break;
+    case GLFW_KEY_LEFT_CONTROL:
+      if (action == GLFW_PRESS) {
+        if(velocity>0.3){
+          velocity -= 0.2;
+        }else{
+          velocity = 0.2f;
+        }
+        std::cout << velocity << std::endl;
+      }
+      break;
+    case GLFW_KEY_SPACE:
+      if (action == GLFW_PRESS) {
+        std::cout << "Faz o steve pular\n";
+        jumpOrigin = scene.model(0).matrix();
+        pulo = 1;
+      }
+      break;
     case GLFW_KEY_W:
       if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         std::cout << "caminha para frente\n";
@@ -397,6 +454,12 @@ void mouse_motion(GLFWwindow* window, double x, double y)
 {
     if (trackball->dragging())
         trackball->drag(x, y);
+}
+
+void idle(){
+  if (pulo){
+    scene.jump();
+  }
 }
 
 static void
